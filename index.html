@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta charset="utf-8">
+<head>
+	<title>简历导入</title>
+  <link rel="stylesheet" type="text/css" href="styles/iview.css">
+  <link rel="stylesheet" type="text/css" href="styles/index.css">
+  <script src="https://unpkg.com/flyio/dist/fly.min.js"></script>
+  <!-- <script type="text/javascript" src="js/jquery.min.js"></script> -->
+  <script type="text/javascript" src="js/vue.min.js"></script>
+  <script type="text/javascript" src="js/iview.min.js"></script>
+</head>
+<body>
+<div id="app" class="contain">
+  <div class="row">
+    <div class="row-title">
+      关联岗位
+    </div>
+    <div class="row-content" @click="modalPosition = true">
+      <input disabled="disabled" type="text" name="" v-model="applyPostName">
+    </div>
+    <div class="row-select" @click="modalPosition = true">
+     <!-- <button class="button-item" type="primary" @click="modalPosition = true">选择岗位</button> -->
+     选择岗位<Icon type="ios-arrow-forward" />
+    </div>
+  </div>
+  
+   <div class="row">
+    <div class="row-title">
+      简历来源<span style="color: red">*</span>
+    </div>
+    <div class="row-content" @click="modalResumeSource = true">
+      <input disabled="disabled" type="text" name="" v-model="sourceName">
+    </div>
+    <div class="row-select" @click="modalResumeSource = true">
+       <!-- <button  class="button-item" type="primary" @click="modalResumeSource = true">选择简历来源</button> -->
+        选择简历来源<Icon type="ios-arrow-forward" />
+    </div>
+  </div>
+
+
+   <div class="row">
+    <div class="row-title">
+      上传简历<span style="color: red">*</span>
+    </div>
+    <div class="row-content">
+      <input type="file" class="form-control" id="upload_file" name="upload_file"
+               style="display: none;" @change="getFile">
+        <input type="text" v-model="name" class="form-control" id="upload_file_tmp" name="upload_file_tmp"
+               readonly="readonly" onclick="upload_file.click(); ">
+    </div>
+    <div class="row-select" onclick="upload_file.click()">
+      <!-- <button class="button-item" type="button" class="btn btn-primary" id="select_file"
+                onclick="upload_file.click();">浏览
+        </button> -->
+         浏览<Icon type="ios-arrow-forward" />
+    </div>
+  </div>
+    <div class="submit-row"  @click="handleUpload">
+      <div class="submit-button-item" >
+        提交<Icon type="ios-cloud-upload-outline" />
+      </div>
+      <!-- <input  class="submit-button-item" type="button" name="" value="提交" @click="handleUpload"> -->
+    </div>
+    <div style="font-size: 12px;color: red">
+      <p>{{tip}}</p>
+     <!--  <p>testData:{{testData}}</p>
+      <p>token:{{token}}</p>
+      <p>code:{{code}}</p>
+      <p>url:{{url}}</p> -->
+    </div>
+    <Modal
+        v-model="modalPosition"
+        title="请选择关联岗位"
+        footer-hide=true
+        @on-ok="positionOk"
+        @on-cancel="positionCancel">
+        <div class="list-content">
+       <div class="list-item" v-for="em in positionList" @click="selectPostion(em)" :key="em.id">
+        
+        <div class="list-item-first">
+          <div class="name-style">{{em.applyPostName}}</div>
+          <div class="first-right">
+           <Icon type="ios-create-outline" />
+          </div>
+        </div>
+        <div class="list-item-second">
+          <div class="spanDiv">
+            <dd>{{em.applyOrgName}}</dd><span>|</span><dd>{{em.className}}</dd><span>|</span><dd>{{em.deputyCode}}</dd>
+          </div>
+        </div>
+      </div>
+    </div>
+    </Modal>
+    <Modal
+        v-model="modalResumeSource"
+        title="请选择简历来源"
+        footer-hide=true
+        @on-ok="handleOk"
+        @on-cancel="handleCancel">
+        <Tree :data="resumeSourceList" @on-select-change="resumeSourceChange" ></Tree>
+    </Modal>
+   <Spin v-show="spinShow" size="large"></Spin>
+ </div>
+  <script>
+    // fly.config.baseURL = "http://localhost:8080" 
+    fly.interceptors.request.use(request => {
+      console.log(window.localStorage.getItem("token"))
+      request.headers["token"] =window.localStorage.getItem("token");
+    })
+    new Vue({
+      el:"#app",
+      data:{
+        files:'',
+        name: '',
+        resumeSourceId:'', //e8a6a9e5abb840c58f01ddd7776ee188
+        positionCode: '', //500283121
+        sourceName:'',
+        applyPostName:'',
+        tip:'',
+        token:'',
+        code: '',
+        resumeSourceList: [],
+        positionList: [],
+        modalResumeSource: false,
+        modalPosition: false,
+        spinShow: false,
+        url: '',
+        testData: ''
+      },
+      created: function(){
+        this.initParamData();
+      },
+      mounted(){
+        let thiz = this
+        setTimeout(function(){
+        thiz.getPositionList();
+        thiz.getResumeSourceList();
+        },2000)
+      },
+      methods: {
+        initParamData(){
+       let token = this.getQueryString("token");
+       let code = this.getQueryString("code");
+       this.token = token;
+       this.code = code;
+       console.log(token + " *** " + code)
+       window.localStorage.setItem("token",token)
+       window.localStorage.setItem("code",code)
+        },
+        selectPostion(em){
+         console.log(em)
+         this.applyPostName = em.applyPostName;
+         this.positionCode = em.id;
+         this.modalPosition = false;
+        },
+        positionOk() {
+           // this.$Message.info('Click ok')
+        },
+        positionCancel(){
+           // this.$Message.info('Click cancel')
+        },
+        handleOk() {
+           // this.$Message.info('Click ok')
+        },
+        handleCancel(){
+           // this.$Message.info('Click cancel')
+        },
+        resumeSourceChange(e){
+          if (e[0].children.length>0){
+            console.log('不是叶子')
+          }else {
+            console.log(e)
+            this.resumeSourceId=e[0].id
+            this.sourceName = e[0].sourceName;
+            this.modalResumeSource= false;
+          }
+        },
+        getFile(e){
+           this.files= e.target.files[0]
+           this.name = this.files.name
+        },
+        getResumeSourceList(){
+           // 简历来源
+           fly.get('/mobile/resumeSourceController/listResumeSources').then(res=>{
+              console.log('resumeSource')
+            res = JSON.parse(res.data)
+            console.log(res)
+              if (res.hasErrors){
+                this.tip = res.errorMessage
+                // this.$Message.info("异常："+res.errorMessage)
+              }else{
+               let rootData = res.data.filter(item=>item.parentId == 0)
+               console.log('rootData')
+               console.log(rootData)
+               let mapRootData = rootData.map(item=>{
+                 let childrenData = res.data.filter(em=>em.parentId==item.id)
+                item.children = childrenData;
+                item.title = item.sourceName
+                item.expand = false
+                return item;
+               })
+                console.log('mapRootData')
+                console.log(mapRootData)
+                mapRootData.map(item=>{
+                   return item.children.map(em=>{
+                      let childrenData = res.data.filter(v=>v.parentId==em.id)
+                          childrenData.map(e=>{
+                            e.title = e.sourceName
+                            e.expand = false
+                            e.children = []
+                          })
+                      em.children = childrenData
+                      em.title = em.sourceName
+                      em.expand = false
+                    })
+                })
+                this.resumeSourceList = mapRootData;
+              }
+           })
+        },
+        getPositionList(){
+         // 关联岗位
+         let posionUrl = 'mobile/recruitDemandController/listDemands?combinedStatus=9&pageIndex=0&pageSize=100'
+         fly.get(posionUrl).then(res=>{
+            console.log('position')
+            this.testData = res
+            console.log(res)
+            res = JSON.parse(res.data)
+            console.log(res) 
+            if (res.hasErrors){
+                this.tip = res.errorMessage
+                // this.$Message.info("异常："+res.errorMessage)
+              }else{
+                this.positionList = res.data.data
+              }
+         }).catch(err=>{
+             this.tip= "接口访问异常"
+           })
+        },
+        handleUpload() {
+          if (!this.resumeSourceId||!this.files){
+            this.$Message.info("请输入必填项")
+            this.tip="请输入必填项";
+            return ;
+          }
+          this.tip= "";
+          this.spinShow = true;
+         // 简历上传
+          let dataFormImport = new FormData();
+          dataFormImport.append('resumeSourceId',this.resumeSourceId);
+          dataFormImport.append('positionCode',this.positionCode);
+          dataFormImport.append('file',this.files);
+          console.log('dataFormImport')
+          console.log(dataFormImport)
+          fly.post('/mobile/resumeController/importResume',dataFormImport).then(res=>{
+          console.log('简历导入')
+          console.log(res)
+          res = JSON.parse(res.data)
+          this.tip = res.errorMessage
+          this.spinShow = false
+         }).catch(err=>{
+             this.tip= "接口访问异常"
+             this.spinShow = false
+           })
+        },
+      getQueryString(prama) {
+        var reg = new RegExp("(^|&)" + prama + "=([^&]*)(&|$)", "i");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+          return decodeURIComponent(r[2]);
+        }
+        return null;
+    }
+      }
+    })
+  </script>
+
+</body>
+</html>
